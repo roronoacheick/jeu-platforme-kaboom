@@ -1,31 +1,58 @@
 // js/player.js
 
-// Vitesse de déplacement (px/s)
-const MOVE_SPEED = 200;
+import k from "./kaboom.js";
 
-export function createPlayer() {
-    const player = add([
-        rect(20, 20),         // carré 20×20
-        color(0, 128, 255),   // bleu ciel
-        pos(50, 0),           // position initiale
-        area(),               // collision
-        body(),               // soumis à la gravité
-    ]);
+const {
+  add,
+  rect,
+  pos,
+  area,
+  body,
+  color,
+  onKeyDown,
+  onKeyPress,
+  onUpdate,
+} = k;
 
-    // Déplacements latéraux
-    keyDown("left",  () => {
-        player.move(-MOVE_SPEED, 0);
-    });
-    keyDown("right", () => {
-        player.move( MOVE_SPEED, 0);
-    });
+// Constants de gameplay
+const MOVE_SPEED = 240;   // déplacement plus rapide
+const JUMP_FORCE = 600;   // force de saut pour atteindre ~75px par saut
+const PLAYER_SIZE = 40;   // taille du joueur en pixels
 
-    // Saut
-    keyPress("space", () => {
-        if (player.isGrounded()) {
-            player.jump();
-        }
-    });
+export function addPlayer(startPos) {
+  const player = add([
+    rect(PLAYER_SIZE, PLAYER_SIZE),
+    pos(startPos.x, startPos.y),
+    area(),
+    body(),                // application de la physique (gravité)
+    color(0, 0, 255),      // joueur bleu
+    "player",
+  ]);
 
-    return player;
+  // Variable pour gérer le double-saut
+  let canDoubleJump = false;
+
+  // Déplacement horizontal
+  onKeyDown("left",  () => player.move(-MOVE_SPEED, 0));
+  onKeyDown("right", () => player.move( MOVE_SPEED, 0));
+
+  // Saut + double saut
+  onKeyPress("space", () => {
+    if (player.isGrounded()) {
+      player.jump(JUMP_FORCE);
+      canDoubleJump = true;        // autorise le second saut
+    } else if (canDoubleJump) {
+      player.jump(JUMP_FORCE);
+      canDoubleJump = false;       // on a utilisé le double saut
+    }
+  });
+
+  // Réinitialisation du double-saut dès qu’on retouche le sol
+  onUpdate(() => {
+    if (player.isGrounded()) {
+      canDoubleJump = false; // sera remis à true au prochain saut au sol
+    }
+  });
+
+  return player;
 }
