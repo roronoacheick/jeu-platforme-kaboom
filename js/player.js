@@ -3,56 +3,64 @@
 import k from "./kaboom.js";
 
 const {
-  add,
-  rect,
-  pos,
-  area,
-  body,
-  color,
-  onKeyDown,
-  onKeyPress,
-  onUpdate,
+    add,
+    rect,
+    pos,
+    area,
+    body,
+    color,
+    onKeyDown,
+    onKeyPress,
+    onUpdate,
+    width,
+    vec2,
+    // clamp is not provided, use Math
 } = k;
 
 // Constants de gameplay
 const MOVE_SPEED = 240;   // déplacement plus rapide
-const JUMP_FORCE = 600;   // force de saut pour atteindre ~75px par saut
-const PLAYER_SIZE = 40;   // taille du joueur en pixels
+const JUMP_FORCE = 600;   // force de saut
+const PLAYER_SIZE = 40;   // taille du joueur
 
 export function addPlayer(startPos) {
-  const player = add([
-    rect(PLAYER_SIZE, PLAYER_SIZE),
-    pos(startPos.x, startPos.y),
-    area(),
-    body(),                // application de la physique (gravité)
-    color(0, 0, 255),      // joueur bleu
-    "player",
-  ]);
+    const player = add([
+        rect(PLAYER_SIZE, PLAYER_SIZE),
+        pos(startPos.x, startPos.y),
+        area(),
+        body(),          // physique
+        color(0, 0, 255),
+        "player",
+    ]);
 
-  // Variable pour gérer le double-saut
-  let canDoubleJump = false;
+    // Double-saut
+    let canDoubleJump = false;
 
-  // Déplacement horizontal
-  onKeyDown("left",  () => player.move(-MOVE_SPEED, 0));
-  onKeyDown("right", () => player.move( MOVE_SPEED, 0));
+    // Déplacement
+    onKeyDown("left",  () => player.move(-MOVE_SPEED, 0));
+    onKeyDown("right", () => player.move( MOVE_SPEED, 0));
 
-  // Saut + double saut
-  onKeyPress("space", () => {
-    if (player.isGrounded()) {
-      player.jump(JUMP_FORCE);
-      canDoubleJump = true;        // autorise le second saut
-    } else if (canDoubleJump) {
-      player.jump(JUMP_FORCE);
-      canDoubleJump = false;       // on a utilisé le double saut
-    }
-  });
+    // Saut et double saut
+    onKeyPress("space", () => {
+        if (player.isGrounded()) {
+            player.jump(JUMP_FORCE);
+            canDoubleJump = true;
+        } else if (canDoubleJump) {
+            player.jump(JUMP_FORCE);
+            canDoubleJump = false;
+        }
+    });
 
-  // Réinitialisation du double-saut dès qu’on retouche le sol
-  onUpdate(() => {
-    if (player.isGrounded()) {
-      canDoubleJump = false; // sera remis à true au prochain saut au sol
-    }
-  });
+    // Mise à jour pour gérer double saut et limites X
+    onUpdate(() => {
+        // Reset double jump si au sol
+        if (player.isGrounded()) {
+            canDoubleJump = false;
+        }
+        // Empêcher de sortir des bords
+        const px = player.pos.x;
+        // Clamp entre 0 et width()
+        player.pos.x = Math.max(0, Math.min(width() - PLAYER_SIZE, px));  // Clamp à droite selon la taille du joueur
+    });
 
-  return player;
+    return player;
 }

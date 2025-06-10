@@ -10,7 +10,7 @@ import { spawnEnemies } from "./enemy.js";
 import { initScore, incrementScore, allCoinsCollected } from "./score.js";
 import { spawnBoss } from "./boss.js";
 
-// Destructuration de l'API Kaboom (incluant anchor)
+// Destructuration de l'API Kaboom (incluant anchor, area, rect, color, etc.)
 const {
   scene,
   go,
@@ -32,6 +32,7 @@ const {
   height,
   vec2,
   outline,
+  area,
   dt,
 } = k;
 
@@ -52,7 +53,7 @@ scene("gameover", () => {
   onKeyPress("enter", () => go("level1"));
 });
 
-// Scène de victoire
+// Scène Victoire
 scene("win", () => {
   add([
     text("Vous avez vaincu le boss !", { size: 24 }),
@@ -186,7 +187,35 @@ scene("boss", () => {
     color(255, 255, 255),
   ]);
 
+  // Gestion du tir de lasers rouges uniquement au niveau boss
   onKeyPress("r", () => {
+    // Création du laser à la position du joueur
+    const laser = add([
+      rect(16, 4),            // rectangle fin pour le laser
+      pos(player.pos),        // commencer au joueur
+      color(255, 0, 0),       // rouge
+      area(),
+      "laser",
+    ]);
+    // Direction unitaire du laser vers le boss
+    const dir = boss.pos.sub(player.pos).unit();
+    const speedLaser = 100000;  // augmenté pour que les lasers filent rapidement vers le boss
+    laser.onUpdate(() => {
+      // Déplacement dirigé
+      laser.move(dir.scale(speedLaser * dt()));
+      // Destruction hors écran
+      if (
+        laser.pos.x < 0 || laser.pos.x > width() ||
+        laser.pos.y < 0 || laser.pos.y > height()
+      ) {
+        destroy(laser);
+      }
+    });
+  });
+
+  // Collision entre lasers et boss pour infliger des dégâts
+  onCollide("laser", "boss", (laserObj, bossObj) => {
+    destroy(laserObj);
     bossHP = Math.max(0, bossHP - 3);
     const ratio = bossHP / maxHP;
     hpBar.width = ratio * 100;
@@ -195,6 +224,7 @@ scene("boss", () => {
     }
   });
 
+  // Gestion du compte à rebours
   boss.onUpdate(() => {
     timer = Math.max(0, timer - dt());
     timerText.text = `Temps : ${timer.toFixed(1)}`;
